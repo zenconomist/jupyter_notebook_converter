@@ -1,0 +1,5 @@
+CREATE PROCEDURE dbo.usp_TestSp1 
+AS
+
+SELECT 1 AS TestSp1
+GO
