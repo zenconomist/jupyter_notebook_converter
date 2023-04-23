@@ -32,18 +32,31 @@ function Convert-StoredProcedureToNotebook {
 
     # Process each line
     $currentSql = ""
+    $inSignedComment = $false
+    $commentLines = @()
+
     foreach ($line in $lines) {
-        # Detect a signed comment
-        if ($line -match "--\s*?SignedComment:\s*?(.*)") {
-            $comment = $Matches[1]
+        # Detect the beginning of a signed comment
+        if ($line -match "--\s*?SignedComment:") {
+            $inSignedComment = $true
+            $commentLines = @()
+        }
 
-            $markdownCell = @{
-                cell_type = "markdown"
-                source    = $comment
-                metadata  = @{}
+        if ($inSignedComment) {
+            $commentLines += $line
+            # Detect the end of a signed comment
+            if ($line -match "`n") {
+                $inSignedComment = $false
+                $comment = ($commentLines -join "`n").Replace("-- SignedComment: ", "")
+                
+                $markdownCell = @{
+                    cell_type = "markdown"
+                    source    = $comment
+                    metadata  = @{}
+                }
+
+                $notebook.cells += $markdownCell
             }
-
-            $notebook.cells += $markdownCell
         }
         # Detect a custom annotation for a new code cell
         elseif ($line -match "(--\s*?NewCell\s*?$)") {
