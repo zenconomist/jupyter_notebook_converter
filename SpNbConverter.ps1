@@ -15,6 +15,23 @@ foreach ($notebookFile in $notebookFiles) {
 }
 #>
 
+function Convert-StoredProcedureToNotebook_Debug {
+    param (
+        [string]$InputFile,
+        [string]$OutputFile
+    )
+
+    # Read the stored procedure script
+    $scriptContent = Get-Content -Path $InputFile -Raw
+
+    # Split the script into individual lines
+    $lines = $scriptContent -split "`n"
+
+    # Process each line
+    foreach ($line in $lines) {
+        Write-Output $line + "new line:"
+    }
+}
 # include the script that converts stored procedures to notebooks
 . .\SpToNotebookConverter.ps1
 
@@ -44,3 +61,4 @@ foreach ($scriptFile in $scriptFiles) {
     # Convert the executed IPYNB notebook to a markdown file
     #$jupyter_path nbconvert --to markdown "$generatedNotebooksPath\$notebookName" --output "$generatedMarkdownPath\$markdownName"
 }
+

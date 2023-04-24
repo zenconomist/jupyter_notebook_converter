@@ -5,7 +5,7 @@ function Convert-StoredProcedureToNotebook {
     )
 
     # Read the stored procedure script
-    $scriptContent = Get-Content -Path $InputFile -Raw
+    $scriptContent = Get-Content -Path $InputFile
 
     # Create the IPYNB file structure
     $notebook = @{
@@ -27,39 +27,20 @@ function Convert-StoredProcedureToNotebook {
         nbformat_minor  = 5
     }
 
-    # Split the script into individual lines
-    $lines = $scriptContent -split "`r`n"
+    # # Split the script into individual lines
+    # $lines = $scriptContent -split "\r`n", 0, "RegexMatch"
 
     # Process each line
     $currentSql = ""
-    $inSignedComment = $false
-    $commentLines = @()
 
-    foreach ($line in $lines) {
-        # Detect the beginning of a signed comment
-        if ($line -match "--\s*?SignedComment:") {
-            $inSignedComment = $true
-            $commentLines = @()
-        }
+    foreach ($line in $scriptContent) {
 
-        if ($inSignedComment) {
-            $commentLines += $line
-            # Detect the end of a signed comment
-            if ($line -match "`n") {
-                $inSignedComment = $false
-                $comment = ($commentLines -join "`n").Replace("-- SignedComment: ", "")
-                
-                $markdownCell = @{
-                    cell_type = "markdown"
-                    source    = $comment
-                    metadata  = @{}
-                }
+        Write-Output "new line: " + $line
 
-                $notebook.cells += $markdownCell
-            }
-        }
-        # Detect a custom annotation for a new code cell
-        elseif ($line -match "(--\s*?NewCell\s*?$)") {
+        if ($line -match "--\s*?SignedComment:\s*?(.+)") {
+            $comment = $Matches[1]
+
+            # Add the current SQL code cell, if any
             if ($currentSql -ne "") {
                 $sqlCell = @{
                     cell_type = "code"
@@ -73,15 +54,37 @@ function Convert-StoredProcedureToNotebook {
                 $notebook.cells += $sqlCell
                 $currentSql = ""
             }
-        }
-        # Detect a custom annotation to add a WHERE clause for demonstration purposes
-        elseif ($line -match "(--\s*?DemoWhere:\s*?(.+))") {
-            $demoWhere = $Matches[2]
-            $currentSql += " WHERE $demoWhere`n"
+
+            # Add the markdown cell
+            $markdownCell = @{
+                cell_type = "markdown"
+                source    = $comment
+                metadata  = @{}
+            }
+
+            $notebook.cells += $markdownCell
         }
         # Add other lines to the current SQL statement
         else {
             $currentSql += $line + "`n"
+
+            # If the current line is a SELECT statement or a custom NewCell annotation,
+            # add the current SQL code cell and reset the currentSql variable
+            if (($line -match "^\s*SELECT") -or ($line -match "--\s*?NewCell\s*?$")) {
+                if ($currentSql -ne "") {
+                    $sqlCell = @{
+                        cell_type = "code"
+                        source    = $currentSql
+                        metadata  = @{
+                            trusted = $true
+                        }
+                        outputs = @()
+                    }
+
+                    $notebook.cells += $sqlCell
+                    $currentSql = ""
+                }
+            }
         }
     }
 
@@ -102,4 +105,6 @@ function Convert-StoredProcedureToNotebook {
     # Convert the notebook structure to JSON and save it to the output file
     $json = $notebook | ConvertTo-Json -Depth 10
     Set-Content -Path $OutputFile -Value $json
+
+    
 }
