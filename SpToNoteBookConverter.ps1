@@ -82,7 +82,13 @@ function Convert-StoredProcedureToNotebook {
                 $currentSql = ""
             }
         } elseif ($insideNewCell) {
-            $currentSql += $line + "`n"
+            # Remove the -- DemoWhere: string
+            $cleanLine = $line -replace '-- DemoWhere:', ''
+
+            $currentSql += $cleanLine + "`n"
+        } else {
+            # Add the line as a commented line
+            $currentSql += "-- " + $line + "`n"
         }
     }
 
