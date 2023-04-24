@@ -30,9 +30,14 @@ function Convert-StoredProcedureToNotebook {
     # Process each line
     $currentSql = ""
     $insideNewCell = $false
+    $insideMultilineComment = $false
 
     foreach ($line in $lines) {
-        if ($line -match "--\s*?SignedComment:\s*?(.+)") {
+        if ($line -match "/\*\s*?SignedComment\s*?\*/") {
+            $insideMultilineComment = -not $insideMultilineComment
+        } elseif ($insideMultilineComment) {
+            continue
+        } elseif ($line -match "--\s*?SignedComment:\s*?(.+)") {
             $comment = $Matches[1]
 
             # Add the current SQL code cell, if any
@@ -58,35 +63,26 @@ function Convert-StoredProcedureToNotebook {
             }
 
             $notebook.cells += $markdownCell
-        }
-        # Add other lines to the current SQL statement
-        else {
-            if ($line -match "--\s*?NewCellStart\s*?$") {
-                $insideNewCell = $true
-            } elseif ($line -match "--\s*?NewCellEnd\s*?$") {
-                $insideNewCell = $false
+        } elseif ($line -match "--\s*?NewCellBegin_(\d+)\s*?$") {
+            $insideNewCell = $true
+        } elseif ($line -match "--\s*?NewCellEnd_(\d+)\s*?$") {
+            $insideNewCell = $false
 
-                if ($currentSql -ne "") {
-                    $sqlCell = @{
-                        cell_type = "code"
-                        source    = $currentSql
-                        metadata  = @{
-                            trusted = $true
-                        }
-                        outputs = @()
+            if ($currentSql -ne "") {
+                $sqlCell = @{
+                    cell_type = "code"
+                    source    = $currentSql
+                    metadata  = @{
+                        trusted = $true
                     }
+                    outputs = @()
+                }
 
-                    $notebook.cells += $sqlCell
-                    $currentSql = ""
-                }
-            } elseif ($insideNewCell) {
-                $line = $line -replace "--\s*?DemoWhere", ""
-                if (-not ($line -match "^\s*WITH" -or $line -match "^\s*\)")) {
-                    $currentSql += $line + "`n"
-                }
-            } else {
-                $currentSql += $line + "`n"
+                $notebook.cells += $sqlCell
+                $currentSql = ""
             }
+        } elseif ($insideNewCell) {
+            $currentSql += $line + "`n"
         }
     }
 

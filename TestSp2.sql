@@ -9,7 +9,7 @@ BEGIN
     -- SignedComment: ### Step 1: Create a Common Table Expression (CTE)
 
     WITH cte_example AS (
-    --NewCellBegin
+    --NewCellBegin_0
         SELECT
             Column1,
             Column2,
@@ -17,10 +17,10 @@ BEGIN
         FROM
             SomeTable
         -- DemoWhere: Column1 = 'example'
-    --NewCellEnd
+    --NewCellEnd_0
     )
     -- SignedComment: ### Step 2: Insert data into a temporary table
-    -- NewCellBegin
+    -- NewCellBegin_1
     SELECT
         Column1,
         Column2,
@@ -30,10 +30,10 @@ BEGIN
     FROM
         cte_example
     -- DemoWhere: Column2 > 100
-    -- NewCellEnd
+    -- NewCellEnd_1
 
     -- SignedComment: ### Step 3: Perform a final SELECT
-    -- NewCellBegin
+    -- NewCellBegin_2
     SELECT
         Column1,
         Column2,
@@ -44,5 +44,5 @@ BEGIN
         Column1,
         Column2
     -- DemoWhere: TotalColumn3 > 1000
-    -- NewCellEnd
+    -- NewCellEnd_2
 END
