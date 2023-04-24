@@ -5,7 +5,7 @@ function Convert-StoredProcedureToNotebook {
     )
 
     # Read the stored procedure script
-    $scriptContent = Get-Content -Path $InputFile
+    $lines = Get-Content -Path $InputFile
 
     # Create the IPYNB file structure
     $notebook = @{
@@ -27,16 +27,11 @@ function Convert-StoredProcedureToNotebook {
         nbformat_minor  = 5
     }
 
-    # # Split the script into individual lines
-    # $lines = $scriptContent -split "\r`n", 0, "RegexMatch"
-
     # Process each line
     $currentSql = ""
+    $insideNewCell = $false
 
-    foreach ($line in $scriptContent) {
-
-        Write-Output "new line: " + $line
-
+    foreach ($line in $lines) {
         if ($line -match "--\s*?SignedComment:\s*?(.+)") {
             $comment = $Matches[1]
 
@@ -66,11 +61,11 @@ function Convert-StoredProcedureToNotebook {
         }
         # Add other lines to the current SQL statement
         else {
-            $currentSql += $line + "`n"
+            if ($line -match "--\s*?NewCellStart\s*?$") {
+                $insideNewCell = $true
+            } elseif ($line -match "--\s*?NewCellEnd\s*?$") {
+                $insideNewCell = $false
 
-            # If the current line is a SELECT statement or a custom NewCell annotation,
-            # add the current SQL code cell and reset the currentSql variable
-            if (($line -match "^\s*SELECT") -or ($line -match "--\s*?NewCell\s*?$")) {
                 if ($currentSql -ne "") {
                     $sqlCell = @{
                         cell_type = "code"
@@ -84,6 +79,13 @@ function Convert-StoredProcedureToNotebook {
                     $notebook.cells += $sqlCell
                     $currentSql = ""
                 }
+            } elseif ($insideNewCell) {
+                $line = $line -replace "--\s*?DemoWhere", ""
+                if (-not ($line -match "^\s*WITH" -or $line -match "^\s*\)")) {
+                    $currentSql += $line + "`n"
+                }
+            } else {
+                $currentSql += $line + "`n"
             }
         }
     }
@@ -105,6 +107,4 @@ function Convert-StoredProcedureToNotebook {
     # Convert the notebook structure to JSON and save it to the output file
     $json = $notebook | ConvertTo-Json -Depth 10
     Set-Content -Path $OutputFile -Value $json
-
-    
 }

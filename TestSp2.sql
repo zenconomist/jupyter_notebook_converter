@@ -7,8 +7,9 @@ CREATE PROCEDURE Test2
 AS
 BEGIN
     -- SignedComment: ### Step 1: Create a Common Table Expression (CTE)
-    -- NewCell
+
     WITH cte_example AS (
+    --NewCellBegin
         SELECT
             Column1,
             Column2,
@@ -16,9 +17,10 @@ BEGIN
         FROM
             SomeTable
         -- DemoWhere: Column1 = 'example'
+    --NewCellEnd
     )
     -- SignedComment: ### Step 2: Insert data into a temporary table
-    -- NewCell
+    -- NewCellBegin
     SELECT
         Column1,
         Column2,
@@ -28,9 +30,10 @@ BEGIN
     FROM
         cte_example
     -- DemoWhere: Column2 > 100
+    -- NewCellEnd
 
     -- SignedComment: ### Step 3: Perform a final SELECT
-    -- NewCell
+    -- NewCellBegin
     SELECT
         Column1,
         Column2,
@@ -41,4 +44,5 @@ BEGIN
         Column1,
         Column2
     -- DemoWhere: TotalColumn3 > 1000
+    -- NewCellEnd
 END
